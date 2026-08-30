@@ -31,7 +31,9 @@ def get_paper(paper_id: int, db: Session = Depends(get_db)):
         "upload_date": paper.upload_date,
         "title": paper.title,
         "authors": paper.authors,
-        "raw_text_length": len(paper.raw_text) if paper.raw_text else 0
+        "raw_text_length": len(paper.raw_text) if paper.raw_text else 0,
+        "sections_found": list(paper.sections.keys()) if paper.sections else [],
+        "section_lengths": {k: len(v) for k, v in paper.sections.items()} if paper.sections else {}
     }
 
 @router.get("/papers/{paper_id}/status")

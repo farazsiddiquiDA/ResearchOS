@@ -62,25 +62,18 @@ def extract_text(file_path: str) -> str:
 SECTION_PATTERNS = [
     "abstract",
     "introduction",
-    "related work",
+    "related work", "related works",
     "background",
-    "methodology",
-    "method",
-    "methods",
-    "approach",
-    "experiments",
-    "experimental setup",
-    "results",
-    "results and discussion",
+    "methodology", "method", "methods", "approach", "proposed method",
+    "experiments", "experimental setup", "experimental results",
+    "results", "results and discussion", "findings",
     "discussion",
     "evaluation",
-    "conclusion",
-    "conclusions",
+    "conclusion", "conclusions", "concluding remarks",
     "future work",
     "limitations",
-    "references"
+    "references", "bibliography"
 ]
-
 def split_into_sections(text: str) -> dict:
     """Split cleaned text into sections based on common heading patterns."""
     lines = text.split("\n")
@@ -92,6 +85,7 @@ def split_into_sections(text: str) -> dict:
         stripped = line.strip()
         # Remove leading numbers like "1." or "2.1" from potential headings
         heading_candidate = re.sub(r'^\d+(\.\d+)*\.?\s*', '', stripped).lower()
+        heading_candidate = re.sub(r'\s+', ' ', heading_candidate).strip()
 
         # A line counts as a heading if it's short and matches a known section name
         is_heading = (
