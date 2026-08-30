@@ -113,3 +113,34 @@ def split_into_sections(text: str) -> dict:
         sections[current_section] = "\n".join(current_content).strip()
 
     return sections
+
+def chunk_text(text: str, max_chars: int = 3000, overlap: int = 200) -> list[str]:
+    """Split long text into overlapping chunks so it fits LLM context limits."""
+    if len(text) <= max_chars:
+        return [text]
+
+    chunks = []
+    start = 0
+
+    while start < len(text):
+        end = start + max_chars
+        chunk = text[start:end]
+        chunks.append(chunk)
+        start += max_chars - overlap  # move forward, but overlap slightly with the previous chunk
+
+    return chunks
+def extract_basic_metadata(text: str) -> dict:
+    """Best-effort extraction of title from the start of the raw text."""
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+
+    title = None
+    for line in lines[:10]:  # title is almost always in the first few lines
+        # Skip lines that look like conference/journal boilerplate
+        if any(skip in line.lower() for skip in ["proceedings", "pages", "©", "association for"]):
+            continue
+        # A reasonable title: not too short, not too long, no weird symbols dominating
+        if 15 < len(line) < 200:
+            title = line
+            break
+
+    return {"title": title}

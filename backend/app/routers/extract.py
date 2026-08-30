@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.paper import Paper
-from app.services.pdf_service import extract_text, split_into_sections
+from app.services.pdf_service import extract_text, split_into_sections, extract_basic_metadata
 
 router = APIRouter()
 
@@ -32,9 +32,11 @@ def extract_paper_text(paper_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=422, detail="No readable text found in PDF")
 
     sections = split_into_sections(text)
+    metadata = extract_basic_metadata(text)
 
     paper.raw_text = text
     paper.sections = sections
+    paper.title = metadata["title"]
     paper.status = "sectioned"
     db.commit()
     db.refresh(paper)
@@ -43,6 +45,7 @@ def extract_paper_text(paper_id: int, db: Session = Depends(get_db)):
         "id": paper.id,
         "filename": paper.filename,
         "status": paper.status,
+        "title": paper.title,
         "text_length": len(text),
         "sections_found": list(sections.keys()),
         "preview": text[:300]
