@@ -57,3 +57,59 @@ def extract_text(file_path: str) -> str:
     text = clean_text(text)
 
     return text
+
+# Common section heading patterns seen across most papers
+SECTION_PATTERNS = [
+    "abstract",
+    "introduction",
+    "related work",
+    "background",
+    "methodology",
+    "method",
+    "methods",
+    "approach",
+    "experiments",
+    "experimental setup",
+    "results",
+    "results and discussion",
+    "discussion",
+    "evaluation",
+    "conclusion",
+    "conclusions",
+    "future work",
+    "limitations",
+    "references"
+]
+
+def split_into_sections(text: str) -> dict:
+    """Split cleaned text into sections based on common heading patterns."""
+    lines = text.split("\n")
+    sections = {}
+    current_section = "preamble"  # anything before the first recognized heading
+    current_content = []
+
+    for line in lines:
+        stripped = line.strip()
+        # Remove leading numbers like "1." or "2.1" from potential headings
+        heading_candidate = re.sub(r'^\d+(\.\d+)*\.?\s*', '', stripped).lower()
+
+        # A line counts as a heading if it's short and matches a known section name
+        is_heading = (
+            len(stripped) < 60
+            and heading_candidate in SECTION_PATTERNS
+        )
+
+        if is_heading:
+            # Save the previous section before starting a new one
+            if current_content:
+                sections[current_section] = "\n".join(current_content).strip()
+            current_section = heading_candidate
+            current_content = []
+        else:
+            current_content.append(line)
+
+    # Save the last section
+    if current_content:
+        sections[current_section] = "\n".join(current_content).strip()
+
+    return sections
