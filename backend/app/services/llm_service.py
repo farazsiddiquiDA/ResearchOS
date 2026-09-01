@@ -11,7 +11,7 @@ client = OpenAI(
 
 def ask_llm(prompt: str, max_tokens: int = 1000) -> str:
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_tokens
     )
