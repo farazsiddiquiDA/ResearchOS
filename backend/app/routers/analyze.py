@@ -4,6 +4,7 @@ from app.database import get_db
 from app.models.paper import Paper
 from app.models.extracted_data import ExtractedData
 from app.services.extraction_service import prepare_text_for_extraction, extract_fields_from_text
+from app.models.paper import Paper
 
 router = APIRouter()
 
@@ -71,3 +72,36 @@ def analyze_paper(paper_id: int, db: Session = Depends(get_db)):
             "future_scope": record.future_scope,
         }
     }
+@router.post("/analyze/batch")
+def analyze_all_pending(db: Session = Depends(get_db)):
+    """Run /analyze on every paper that has raw_text but hasn't been analyzed yet."""
+    papers = db.query(Paper).filter(
+        Paper.raw_text.isnot(None),
+        Paper.status != "analyzed"
+    ).all()
+
+    if not papers:
+        return {"message": "No papers pending analysis", "analyzed": []}
+
+    results = []
+    for paper in papers:
+        try:
+            text = prepare_text_for_extraction(paper.raw_text, paper.sections)
+            fields = extract_fields_from_text(text)
+
+            existing = db.query(ExtractedData).filter(ExtractedData.paper_id == paper.id).first()
+            if existing:
+                for key, value in fields.items():
+                    setattr(existing, key, value)
+            else:
+                existing = ExtractedData(paper_id=paper.id, **fields)
+                db.add(existing)
+
+            paper.status = "analyzed"
+            db.commit()
+
+            results.append({"paper_id": paper.id, "filename": paper.filename, "status": "analyzed"})
+        except Exception as e:
+            results.append({"paper_id": paper.id, "filename": paper.filename, "status": "failed", "error": str(e)})
+
+    return {"analyzed": results}
