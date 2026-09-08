@@ -3,10 +3,14 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.paper import Paper
 from app.models.extracted_data import ExtractedData
-from app.services.extraction_service import prepare_text_for_extraction, extract_fields_from_text
-from app.models.paper import Paper
+from app.services.extraction_service import (
+    prepare_text_for_extraction,
+    extract_fields_from_text,
+    generate_narrative_summary,
+)
 
 router = APIRouter()
+
 
 @router.post("/papers/{paper_id}/analyze")
 def analyze_paper(paper_id: int, db: Session = Depends(get_db)):
@@ -21,12 +25,12 @@ def analyze_paper(paper_id: int, db: Session = Depends(get_db)):
     # Step B: prepare text and call the LLM
     text = prepare_text_for_extraction(paper.raw_text, paper.sections)
     fields = extract_fields_from_text(text)
+    narrative = generate_narrative_summary(fields)
 
     # Step C: check if extracted_data already exists for this paper (avoid duplicates)
     existing = db.query(ExtractedData).filter(ExtractedData.paper_id == paper_id).first()
 
     if existing:
-        # Update existing row instead of creating a duplicate
         existing.research_problem = fields.get("research_problem")
         existing.method_used = fields.get("method_used")
         existing.dataset = fields.get("dataset")
@@ -35,6 +39,7 @@ def analyze_paper(paper_id: int, db: Session = Depends(get_db)):
         existing.advantage = fields.get("advantage")
         existing.limitation = fields.get("limitation")
         existing.future_scope = fields.get("future_scope")
+        existing.narrative_summary = narrative
         db.commit()
         db.refresh(existing)
         record = existing
@@ -49,6 +54,7 @@ def analyze_paper(paper_id: int, db: Session = Depends(get_db)):
             advantage=fields.get("advantage"),
             limitation=fields.get("limitation"),
             future_scope=fields.get("future_scope"),
+            narrative_summary=narrative,
         )
         db.add(record)
         db.commit()
@@ -70,8 +76,11 @@ def analyze_paper(paper_id: int, db: Session = Depends(get_db)):
             "advantage": record.advantage,
             "limitation": record.limitation,
             "future_scope": record.future_scope,
+            "narrative_summary": record.narrative_summary,
         }
     }
+
+
 @router.post("/analyze/batch")
 def analyze_all_pending(db: Session = Depends(get_db)):
     """Run /analyze on every paper that has raw_text but hasn't been analyzed yet."""
@@ -88,6 +97,8 @@ def analyze_all_pending(db: Session = Depends(get_db)):
         try:
             text = prepare_text_for_extraction(paper.raw_text, paper.sections)
             fields = extract_fields_from_text(text)
+            narrative = generate_narrative_summary(fields)
+            fields["narrative_summary"] = narrative
 
             existing = db.query(ExtractedData).filter(ExtractedData.paper_id == paper.id).first()
             if existing:

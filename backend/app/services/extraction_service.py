@@ -72,3 +72,31 @@ def prepare_text_for_extraction(raw_text: str, sections: dict = None) -> str:
         text = raw_text
 
     return text[:MAX_INPUT_CHARS]
+SUMMARY_PROMPT_TEMPLATE = """Based on the following structured research paper data, write a concise 3-4 sentence narrative summary that flows naturally as a paragraph (not bullet points). Do not repeat field labels — write it as if explaining the paper to a fellow student.
+
+Research Problem: {research_problem}
+Method Used: {method_used}
+Dataset: {dataset}
+Algorithm: {algorithm}
+Results: {results}
+Advantage: {advantage}
+Limitation: {limitation}
+Future Scope: {future_scope}
+
+Narrative summary:"""
+
+
+def generate_narrative_summary(fields: dict) -> str:
+    """Turn the 8 extracted fields into a readable paragraph summary."""
+    prompt = SUMMARY_PROMPT_TEMPLATE.format(
+        research_problem=fields.get("research_problem", "Not specified"),
+        method_used=fields.get("method_used", "Not specified"),
+        dataset=fields.get("dataset", "Not specified"),
+        algorithm=fields.get("algorithm", "Not specified"),
+        results=fields.get("results", "Not specified"),
+        advantage=fields.get("advantage", "Not specified"),
+        limitation=fields.get("limitation", "Not specified"),
+        future_scope=fields.get("future_scope", "Not specified"),
+    )
+    summary = ask_llm(prompt, max_tokens=300)
+    return summary.strip()

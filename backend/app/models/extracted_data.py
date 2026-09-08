@@ -15,4 +15,5 @@ class ExtractedData(Base):
     advantage = Column(Text)
     limitation = Column(Text)
     future_scope = Column(Text)
+    narrative_summary = Column(Text)   # NEW
     created_at = Column(DateTime(timezone=True), server_default=func.now())

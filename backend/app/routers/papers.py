@@ -62,6 +62,7 @@ def get_paper_summary(paper_id: int, db: Session = Depends(get_db)):
         "id": paper.id,
         "title": paper.title,
         "filename": paper.filename,
+        "narrative_summary": extracted.narrative_summary,
         "research_problem": extracted.research_problem,
         "method_used": extracted.method_used,
         "dataset": extracted.dataset,
