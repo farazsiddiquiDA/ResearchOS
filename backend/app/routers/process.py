@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -22,7 +23,7 @@ def process_papers(files: list[UploadFile] = File(...), db: Session = Depends(ge
 
     results = []
 
-    for file in files:
+    for i, file in enumerate(files):
         if not file.filename.endswith(".pdf"):
             results.append({"filename": file.filename, "error": "Only PDF files are allowed"})
             continue
@@ -87,6 +88,13 @@ def process_papers(files: list[UploadFile] = File(...), db: Session = Depends(ge
             })
 
         except Exception as e:
-            results.append({"filename": file.filename, "error": str(e)})
+            error_msg = str(e)
+            if "rate" in error_msg.lower() or "429" in error_msg:
+                error_msg = "Groq rate limit reached — try processing fewer papers at once, or wait a minute and retry."
+            results.append({"filename": file.filename, "error": error_msg})
+
+        # Small pause between papers to stay under Groq's rate limits (skip after the last file)
+        if i < len(files) - 1:
+            time.sleep(2)
 
     return {"processed": results}

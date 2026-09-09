@@ -128,11 +128,15 @@ def extract_basic_metadata(text: str) -> dict:
     lines = [l.strip() for l in text.split("\n") if l.strip()]
 
     title = None
-    for line in lines[:10]:  # title is almost always in the first few lines
-        # Skip lines that look like conference/journal boilerplate
-        if any(skip in line.lower() for skip in ["proceedings", "pages", "©", "association for"]):
+    for line in lines[:10]:
+        lower = line.lower()
+        # Skip lines that look like conference/journal boilerplate or dates
+        if any(skip in lower for skip in [
+            "proceedings", "pages", "©", "association for",
+            "december", "january", "february", "march", "april", "may",
+            "june", "july", "august", "september", "october", "november"
+        ]):
             continue
-        # A reasonable title: not too short, not too long, no weird symbols dominating
         if 15 < len(line) < 200:
             title = line
             break

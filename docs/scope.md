@@ -27,3 +27,7 @@ information, and compares multiple papers side by side.
 6. Advantage
 7. Limitation
 8. Future Scope
+
+## Model Update (Day 18)
+- Groq deprecated llama-3.3-70b-versatile on June 17, 2026.
+- Switched to openai/gpt-oss-120b (Groq's recommended replacement) across llm_service.py and test_llm.py.
