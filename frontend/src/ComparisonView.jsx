@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import api from "./api";
+import Spinner from "./Spinner";
 
 const FIELD_LABELS = {
   research_problem: "Research Problem",
@@ -45,7 +46,6 @@ function ComparisonView() {
   }, [idsParam]);
 
   const handleExport = () => {
-    // Export needs a POST, so we build a temporary form to trigger a file download
     api.post("/compare/export", { paper_ids: paperIds }, { responseType: "blob" })
       .then((response) => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -64,7 +64,13 @@ function ComparisonView() {
       <Link to="/">&larr; Back to all papers</Link>
       <h1>Paper Comparison</h1>
 
-      {loading && <p>Comparing papers... this may take a moment.</p>}
+      {loading && (
+        <>
+          <p>Comparing papers... this may take a moment.</p>
+          <Spinner />
+        </>
+      )}
+
       {error && <p style={{ color: "red" }}>{error}</p>}
 
       {data && (

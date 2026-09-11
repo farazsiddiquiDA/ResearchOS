@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "./api";
+import Spinner from "./Spinner";
 
 function UploadForm({ onUploadComplete }) {
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -70,6 +71,8 @@ function UploadForm({ onUploadComplete }) {
       <button onClick={handleUpload} disabled={uploading || selectedFiles.length === 0}>
         {uploading ? "Processing... (this may take up to a minute)" : "Upload & Analyze"}
       </button>
+
+      {uploading && <Spinner />}
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
