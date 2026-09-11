@@ -7,8 +7,9 @@ function PaperDetail() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reanalyzing, setReanalyzing] = useState(false);
 
-  useEffect(() => {
+  const fetchSummary = () => {
     setLoading(true);
     setError(null);
     api.get(`/papers/${id}/summary`)
@@ -25,10 +26,32 @@ function PaperDetail() {
         setLoading(false);
         console.error(err);
       });
+  };
+
+  useEffect(() => {
+    fetchSummary();
   }, [id]);
 
   const handleExport = () => {
     window.open(`http://localhost:8000/papers/${id}/export`, "_blank");
+  };
+
+  const handleReanalyze = () => {
+    setReanalyzing(true);
+    setError(null);
+    api.post(`/papers/${id}/analyze`)
+      .then(() => {
+        return api.get(`/papers/${id}/summary`);
+      })
+      .then((response) => {
+        setSummary(response.data);
+        setReanalyzing(false);
+      })
+      .catch((err) => {
+        setError("Re-analysis failed. Try again.");
+        setReanalyzing(false);
+        console.error(err);
+      });
   };
 
   const fieldRows = summary
@@ -53,11 +76,18 @@ function PaperDetail() {
 
       {summary && (
         <>
-          <h1>{summary.title || summary.filename}</h1>
+          <h1 style={{ fontSize: "2.5rem", lineHeight: "1.3", wordBreak: "break-word" }}>
+            {summary.title || summary.filename}
+          </h1>
 
-          <button onClick={handleExport} style={{ marginBottom: "1.5rem" }}>
-            Export as Excel
-          </button>
+          <div style={{ marginBottom: "1.5rem" }}>
+            <button onClick={handleExport} style={{ marginRight: "0.5rem" }}>
+              Export as Excel
+            </button>
+            <button onClick={handleReanalyze} disabled={reanalyzing}>
+              {reanalyzing ? "Re-analyzing..." : "Re-analyze"}
+            </button>
+          </div>
 
           {summary.narrative_summary && (
             <div style={{ background: "#f5f5f5", padding: "1rem", borderRadius: "8px", marginBottom: "1.5rem" }}>

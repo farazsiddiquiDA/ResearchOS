@@ -47,11 +47,13 @@ def compare_papers(request: CompareRequest, db: Session = Depends(get_db)):
 
     comparison_table = build_comparison_table(papers_data)
     insight = generate_comparison_insight(papers_data)
+    similarity_scores = compute_pairwise_similarity(papers_data)
 
     return {
         "papers_compared": [{"id": p["id"], "title": p["title"] or p["filename"]} for p in papers_data],
         "comparison_table": comparison_table,
-        "comparative_insight": insight
+        "comparative_insight": insight,
+        "similarity_scores": similarity_scores
     }
 from fastapi.responses import StreamingResponse
 from app.services.export_service import generate_comparison_excel

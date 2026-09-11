@@ -28,32 +28,35 @@ JSON output:"""
 
 def build_extraction_prompt(paper_text: str) -> str:
     return EXTRACTION_PROMPT_TEMPLATE.format(paper_text=paper_text)
-def extract_fields_from_text(paper_text: str) -> dict:
-    """Call the LLM to extract the 8 fields, parsing defensively."""
+def extract_fields_from_text(paper_text: str, max_attempts: int = 2) -> dict:
+    """Call the LLM to extract the 8 fields, retrying once if JSON parsing fails."""
     prompt = build_extraction_prompt(paper_text)
-    raw_response = ask_llm(prompt, max_tokens=800)
 
-    cleaned = raw_response.strip()
+    for attempt in range(max_attempts):
+        raw_response = ask_llm(prompt, max_tokens=800)
+        cleaned = raw_response.strip()
 
-    # Defensive cleanup: strip markdown code fences if the LLM added them anyway
-    if cleaned.startswith("```"):
-        cleaned = cleaned.strip("`")
-        cleaned = cleaned.replace("json", "", 1).strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.strip("`")
+            cleaned = cleaned.replace("json", "", 1).strip()
 
-    try:
-        data = json.loads(cleaned)
-    except json.JSONDecodeError:
-        # If parsing fails, return a fallback structure so the app doesn't crash
-        data = {
-            "research_problem": "Extraction failed",
-            "method_used": "Extraction failed",
-            "dataset": "Extraction failed",
-            "algorithm": "Extraction failed",
-            "results": "Extraction failed",
-            "advantage": "Extraction failed",
-            "limitation": "Extraction failed",
-            "future_scope": "Extraction failed",
-        }
+        try:
+            data = json.loads(cleaned)
+            return data  # success — return immediately
+        except json.JSONDecodeError:
+            if attempt < max_attempts - 1:
+                continue  # try again
+            # final attempt also failed — return the fallback
+            return {
+                "research_problem": "Extraction failed",
+                "method_used": "Extraction failed",
+                "dataset": "Extraction failed",
+                "algorithm": "Extraction failed",
+                "results": "Extraction failed",
+                "advantage": "Extraction failed",
+                "limitation": "Extraction failed",
+                "future_scope": "Extraction failed",
+            }
 
     return data
 MAX_INPUT_CHARS = 8000  # roughly 2000 tokens — safe margin for prompt + response within Groq free tier
