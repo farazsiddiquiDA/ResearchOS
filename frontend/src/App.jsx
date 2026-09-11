@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { Routes, Route, Link } from "react-router-dom";
 import api from "./api";
 import UploadForm from "./UploadForm";
+import PaperDetail from "./PaperDetail";
 
-function App() {
+function PapersList() {
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -38,13 +40,25 @@ function App() {
       {!loading && !error && papers.length > 0 && (
         <ul>
           {papers.map((paper) => (
-            <li key={paper.id}>
-              <strong>{paper.title || paper.filename}</strong> — {paper.status}
+            <li key={paper.id} style={{ marginBottom: "0.5rem" }}>
+              <Link to={`/papers/${paper.id}`}>
+                <strong>{paper.title || paper.filename}</strong>
+              </Link>{" "}
+              — {paper.status}
             </li>
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<PapersList />} />
+      <Route path="/papers/:id" element={<PaperDetail />} />
+    </Routes>
   );
 }
 
