@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "./api";
+import Spinner from "./Spinner";
 
 function PaperDetail() {
   const { id } = useParams();
@@ -8,107 +9,91 @@ function PaperDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reanalyzing, setReanalyzing] = useState(false);
+  const [reanalyzeError, setReanalyzeError] = useState(null);
 
   const fetchSummary = () => {
     setLoading(true);
     setError(null);
     api.get(`/papers/${id}/summary`)
-      .then((response) => {
-        setSummary(response.data);
-        setLoading(false);
-      })
+      .then((res) => { setSummary(res.data); setLoading(false); })
       .catch((err) => {
-        if (err.response && err.response.status === 404) {
-          setError("No extracted data yet for this paper.");
-        } else {
-          setError("Failed to load paper summary.");
-        }
+        setError(err.response?.status === 404
+          ? "No extracted data yet for this paper."
+          : "Couldn't load this summary.");
         setLoading(false);
         console.error(err);
       });
   };
 
-  useEffect(() => {
-    fetchSummary();
-  }, [id]);
+  useEffect(() => { fetchSummary(); }, [id]);
 
-  const handleExport = () => {
-    window.open(`http://localhost:8000/papers/${id}/export`, "_blank");
-  };
+  const handleExport = () => window.open(`http://localhost:8000/papers/${id}/export`, "_blank");
 
-  const handleReanalyze = () => {
+  const handleReanalyze = async () => {
     setReanalyzing(true);
-    setError(null);
-    api.post(`/papers/${id}/analyze`)
-      .then(() => {
-        return api.get(`/papers/${id}/summary`);
-      })
-      .then((response) => {
-        setSummary(response.data);
-        setReanalyzing(false);
-      })
-      .catch((err) => {
-        setError("Re-analysis failed. Try again.");
-        setReanalyzing(false);
-        console.error(err);
-      });
+    setReanalyzeError(null);
+    try {
+      await api.post(`/papers/${id}/analyze`);
+      fetchSummary(); // pull the fresh results once re-analysis finishes
+    } catch (err) {
+      setReanalyzeError("Re-analysis failed. The backend or Groq API may be unavailable — try again shortly.");
+      console.error(err);
+    } finally {
+      setReanalyzing(false);
+    }
   };
 
-  const fieldRows = summary
-    ? [
-        ["Research Problem", summary.research_problem],
-        ["Method Used", summary.method_used],
-        ["Dataset", summary.dataset],
-        ["Algorithm", summary.algorithm],
-        ["Results", summary.results],
-        ["Advantage", summary.advantage],
-        ["Limitation", summary.limitation],
-        ["Future Scope", summary.future_scope],
-      ]
-    : [];
+  const fieldRows = summary ? [
+    ["Research problem", summary.research_problem],
+    ["Method used", summary.method_used],
+    ["Dataset", summary.dataset],
+    ["Algorithm", summary.algorithm],
+    ["Results", summary.results],
+    ["Advantage", summary.advantage],
+    ["Limitation", summary.limitation],
+    ["Future scope", summary.future_scope],
+  ] : [];
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "sans-serif", maxWidth: "800px", margin: "0 auto" }}>
-      <Link to="/">&larr; Back to all papers</Link>
+    <div className="page">
+      <Link to="/">← All papers</Link>
 
-      {loading && <p>Loading summary...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {loading && <div style={{ marginTop: "2rem" }}><Spinner /></div>}
+      {error && <p style={{ color: "var(--danger)", marginTop: "1rem" }}>{error}</p>}
 
       {summary && (
-        <>
-          <h1 style={{ fontSize: "2.5rem", lineHeight: "1.3", wordBreak: "break-word" }}>
-            {summary.title || summary.filename}
-          </h1>
+        <div style={{ marginTop: "1.5rem" }}>
+          <h1>{summary.title || summary.filename}</h1>
 
-          <div style={{ marginBottom: "1.5rem" }}>
-            <button onClick={handleExport} style={{ marginRight: "0.5rem" }}>
-              Export as Excel
-            </button>
-            <button onClick={handleReanalyze} disabled={reanalyzing}>
-              {reanalyzing ? "Re-analyzing..." : "Re-analyze"}
+          <div style={{ margin: "1.25rem 0", display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            <button className="secondary" onClick={handleExport}>Export as Excel</button>
+            <button className="secondary" onClick={handleReanalyze} disabled={reanalyzing}>
+              {reanalyzing ? "Re-analyzing…" : "Re-analyze"}
             </button>
           </div>
 
+          {reanalyzing && <Spinner />}
+          {reanalyzeError && <p style={{ color: "var(--danger)", marginBottom: "1rem" }}>{reanalyzeError}</p>}
+
           {summary.narrative_summary && (
-            <div style={{ background: "#f5f5f5", padding: "1rem", borderRadius: "8px", marginBottom: "1.5rem" }}>
-              <h3>Summary</h3>
-              <p>{summary.narrative_summary}</p>
+            <div className="card" style={{ marginBottom: "2rem", background: "var(--accent-soft)", border: "none" }}>
+              <p style={{ margin: 0, fontStyle: "italic" }}>{summary.narrative_summary}</p>
             </div>
           )}
 
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table>
             <tbody>
               {fieldRows.map(([label, value]) => (
-                <tr key={label} style={{ borderBottom: "1px solid #eee" }}>
-                  <td style={{ padding: "0.75rem", fontWeight: "bold", verticalAlign: "top", width: "180px" }}>
-                    {label}
+                <tr key={label} style={{ borderBottom: "1px solid var(--line)" }}>
+                  <td style={{ padding: "0.9rem 0", width: "180px", verticalAlign: "top" }}>
+                    <span className="field-label">{label}</span>
                   </td>
-                  <td style={{ padding: "0.75rem" }}>{value}</td>
+                  <td style={{ padding: "0.9rem 0" }}>{value}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </>
+        </div>
       )}
     </div>
   );

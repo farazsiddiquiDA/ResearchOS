@@ -11,7 +11,7 @@ function UploadForm({ onUploadComplete }) {
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 5) {
-      setError("Max 5 files allowed. Please select fewer files.");
+      setError("Max 5 files at a time.");
       setSelectedFiles([]);
       return;
     }
@@ -20,15 +20,10 @@ function UploadForm({ onUploadComplete }) {
   };
 
   const handleUpload = async () => {
-    if (selectedFiles.length === 0) {
-      setError("Please select at least one PDF file.");
-      return;
-    }
+    if (selectedFiles.length === 0) { setError("Choose at least one PDF."); return; }
 
     const formData = new FormData();
-    selectedFiles.forEach((file) => {
-      formData.append("files", file);
-    });
+    selectedFiles.forEach((file) => formData.append("files", file));
 
     setUploading(true);
     setError(null);
@@ -50,42 +45,36 @@ function UploadForm({ onUploadComplete }) {
   };
 
   return (
-    <div style={{ border: "1px solid #ccc", padding: "1.5rem", borderRadius: "8px", marginBottom: "2rem" }}>
-      <h2>Upload Papers</h2>
-      <p style={{ color: "#666", fontSize: "0.9rem" }}>Select 1–5 PDF files to upload and analyze.</p>
+    <div className="card">
+      <h3 style={{ marginBottom: "0.3rem" }}>Add papers</h3>
+      <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginTop: 0, marginBottom: "1rem" }}>
+        Up to 5 PDFs. Each is read, structured, and analyzed automatically.
+      </p>
 
-      <input
-        type="file"
-        accept="application/pdf"
-        multiple
-        onChange={handleFileChange}
-        disabled={uploading}
-      />
+      <input type="file" accept="application/pdf" multiple onChange={handleFileChange} disabled={uploading} />
 
       {selectedFiles.length > 0 && (
-        <p>{selectedFiles.length} file(s) selected.</p>
+        <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: "0.5rem 0" }}>
+          {selectedFiles.length} file{selectedFiles.length > 1 ? "s" : ""} ready
+        </p>
       )}
 
-      <br />
-
-      <button onClick={handleUpload} disabled={uploading || selectedFiles.length === 0}>
-        {uploading ? "Processing... (this may take up to a minute)" : "Upload & Analyze"}
-      </button>
+      <div style={{ marginTop: "1rem" }}>
+        <button onClick={handleUpload} disabled={uploading || selectedFiles.length === 0}>
+          {uploading ? "Analyzing…" : "Upload & analyze"}
+        </button>
+      </div>
 
       {uploading && <Spinner />}
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p style={{ color: "var(--danger)", marginTop: "0.75rem" }}>{error}</p>}
 
       {results && (
-        <div style={{ marginTop: "1rem" }}>
-          <h3>Results</h3>
-          <ul>
-            {results.map((r, i) => (
-              <li key={i} style={{ color: r.error ? "red" : "green" }}>
-                {r.filename}: {r.error ? r.error : `✓ ${r.status}`}
-              </li>
-            ))}
-          </ul>
+        <div style={{ marginTop: "1.25rem", borderTop: "1px solid var(--line)", paddingTop: "1rem" }}>
+          {results.map((r, i) => (
+            <div key={i} style={{ fontSize: "0.9rem", color: r.error ? "var(--danger)" : "var(--ink)", marginBottom: "0.3rem" }}>
+              {r.error ? "· " : "✓ "} {r.filename} {r.error ? `— ${r.error}` : `— ${r.status}`}
+            </div>
+          ))}
         </div>
       )}
     </div>
